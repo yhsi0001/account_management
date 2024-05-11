@@ -1,0 +1,184 @@
+openapi: 3.0.0
+info:
+  title: 'Account management API'
+  version: 1.0.0
+  description: API for creating user accounts
+paths:
+  /api/v1/accounts:
+    post:
+      summary: Create a new account
+      description: Creates a new user account with the given username and password
+      requestBody:
+        description: The username and password for the new account
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Username for the account
+                  minLength: 3
+                  maxLength: 32
+                  example: username
+                password:
+                  type: string
+                  description: Password for the account
+                  minLength: 8
+                  maxLength: 32
+                  pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,32}$'
+                  example: password
+      responses:
+        '201':
+          description: Account successfully created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  reason:
+                    type: string
+                    example: "failure_reason"
+              examples:
+                UsernameLengthError:
+                  summary: Username length error
+                  value: 
+                    success: false
+                    reason: "Username length must be between 3 and 32 characters"
+                PasswordLengthError:
+                  summary: Password length error
+                  value: 
+                    success: false
+                    reason: "Password length must be between 8 and 32 characters"
+                PasswordStrengthError:
+                  summary: Password strength error
+                  value: 
+                    success: false
+                    reason: "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number"
+                UsernameExistsError:
+                  summary: Username already exists error
+                  value: 
+                    success: false
+                    reason: "Username already exists"
+        '500':
+          description: 'Internal Server error'
+          content:
+            application/json:
+              schema:
+                 type: 'string'
+  /api/v1/accounts/verify:
+    post:
+      summary: Verify account and password
+      description: Verifies the provided username and password
+      requestBody:
+        description: JSON payload containing the username and password to be verified
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Username of the account being accessed
+                  example: username
+                password:
+                  type: string
+                  description: Password being used to access the account
+                  example: password
+      responses:
+        '200':
+          description: Password verified successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+        '400':
+          description: Invalid username or password
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  reason:
+                    type: string
+              examples:
+                      InvalidUsername:
+                        summary: Account does not exist
+                        value:
+                          success: false
+                          reason: "Account does not exist"
+                      InvalidPassword:
+                        summary: Incorrect password
+                        value:
+                          success: false
+                          reason: "Incorrect password"
+        '429':
+          description: Too many attempts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  reason:
+                    type: string
+                    example: "Too many attempts. Please wait one minute before trying again."
+components:
+  schemas:
+    CreateAccountRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 32
+        password:
+          type: string
+          minLength: 8
+          maxLength: 32
+          pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,32}$'
+    CreateAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        reason:
+          type: string
+    VerifyAccountRequest:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    VerifyAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        reason:
+          type: string
