@@ -81,7 +81,7 @@ paths:
               schema:
                  type: 'string'
   /api/v1/accounts/verify:
-    post:
+    post:  
       summary: Verify account and password
       description: Verifies the provided username and password
       requestBody:
