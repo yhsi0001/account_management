@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 ### db
 # 配置MySQL數據庫連接
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3307/mysql'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@localhost:3306/mysql'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -36,7 +36,7 @@ login_info = {}
 password_regex = re.compile(r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[A-Za-z\d]{8,32}$')
 
 
-# Accounts_api
+# accounts api
 @app.route('/accounts', methods=['POST'])
 def create_account():
     data = request.get_json()
@@ -65,21 +65,25 @@ def create_account():
     db.session.commit()
     return jsonify({"success": True}), 201
 
+# accounts/verify api
 @app.route('/accounts/verify', methods=['POST'])
 def verify_account():
     data = request.get_json()
 
     username = data.get('username')
     password = data.get('password')
-
+    # Query the account table
     account = Account.query.filter_by(username=username).first()
+
     # Check the account username exsits
     if account is None:
         return jsonify({"success": False, "reason": "Account does not exist"}), 400
 
+    # Query the login_info Table
     login_info = LoginInfo.query.filter_by(username=username).first()
     if login_info is None:
-        login_info = LoginInfo(username=username, count=0, last_attempt_time=0)
+        # If there is no data give them defult
+        login_info = LoginInfo(username=username, count=1, last_attempt_time=0)
     else:
         if login_info.count is None:
             login_info.count = 0
@@ -107,7 +111,5 @@ def verify_account():
         return jsonify({"success": False, "reason": "Incorrect password"}), 400
     
 
-
-# 啟動 Flask 應用
 if __name__ == '__main__':
     app.run(debug=True)
