@@ -1,7 +1,33 @@
 from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
 import re
 import time
 app = Flask(__name__)
+
+### db
+# 配置MySQL數據庫連接
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:root@localhost:3307/mysql'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# 定義Account模型
+class Account(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(32), unique=True, nullable=False)
+    password = db.Column(db.String(32), nullable=False)
+
+# 定義LoginInfo模型
+class LoginInfo(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(32), db.ForeignKey('account.username'), nullable=False)
+    count = db.Column(db.Integer, default=0)
+    last_attempt_time = db.Column(db.BigInteger, default=0)
+
+#db.create_all()
+with app.app_context():
+    db.create_all()
+###
+
 
 accounts = {}
 login_info = {}
@@ -28,11 +54,15 @@ def create_account():
         return jsonify({"success": False, "reason": "Password must contain at least 1 uppercase letter, 1 lowercase letter, and 1 number"}), 400
 
     # Check the account username exsits
-    if username in accounts:
+    #if username in accounts:
+    if Account.query.filter_by(username=username).first():
         return jsonify({"success": False, "reason": "Username already exists"}), 400
 
     # Create account
-    accounts[username] = password
+    #accounts[username] = password
+    new_account = Account(username=username, password=password)
+    db.session.add(new_account)
+    db.session.commit()
     return jsonify({"success": True}), 201
 
 @app.route('/accounts/verify', methods=['POST'])
@@ -42,35 +72,40 @@ def verify_account():
     username = data.get('username')
     password = data.get('password')
 
+    account = Account.query.filter_by(username=username).first()
     # Check the account username exsits
-    if username not in accounts:
+    if account is None:
         return jsonify({"success": False, "reason": "Account does not exist"}), 400
 
-
-    if username not in login_info:
-        login_info[username] = {'count': 1, 'last_login_time': 0}
+    login_info = LoginInfo.query.filter_by(username=username).first()
+    if login_info is None:
+        login_info = LoginInfo(username=username, count=0, last_attempt_time=0)
+    else:
+        if login_info.count is None:
+            login_info.count = 0
+        if login_info.last_attempt_time is None:
+            login_info.last_attempt_time = 0
 
     # get the current time
-    current_time = time.time()
-    # get the current login username
-    login_name = login_info[username]
+    current_time = int(time.time())
 
     # check the count of login attemption 
-    if login_name['count'] >= 5 and (current_time - login_name['last_login_time']) < 60:
+    if login_info.count >= 5 and (current_time - login_info.last_attempt_time) < 60:
         return jsonify({"success": False, "reason": "Too many attempts. Please wait one minute before trying again."}), 429
 
-    
-    if accounts[username] == password:
-        login_name['count'] = 0
-        login_name['last_login_time'] = None
+    if account.password == password:
+        login_info.count = 0
+        login_info.last_attempt_time = 0
+        db.session.add(login_info)
+        db.session.commit()
         return jsonify({"success": True}), 200
-    else :
-        login_name['count'] += 1
-        login_name['last_login_time'] = current_time
-        print(login_name['count'])
-        print(login_name['last_login_time'])
+    else:
+        login_info.count += 1
+        login_info.last_attempt_time = current_time
+        db.session.add(login_info)
+        db.session.commit()
         return jsonify({"success": False, "reason": "Incorrect password"}), 400
-
+    
 
 
 # 啟動 Flask 應用
