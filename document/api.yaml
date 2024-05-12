@@ -1,0 +1,147 @@
+info:
+  version: '1.0.0'
+  title: 'Account management API'
+  description: 'A API to illustrate Swagger specs'
+  contact:
+    name: 'Steven HSIAO'
+    email: 's1021332@gmail.com'
+#host: 'api.example.com'
+basePath: '/v1'
+consumes:
+  - 'application/json'
+produces:
+  - 'application/json'
+
+paths:
+  /api/v1/accounts:
+    post:
+      summary: 'Create a new ccount'
+      tags:
+        - 'Accounts'
+      parameters:
+        - name: 'account'
+          in: 'body'
+          description: 'User (account & password) to add'
+          required: true
+          schema:
+            $ref: '#/definitions/Account'
+      responses:
+        '201':
+          description: 'Account created'
+          schema:
+            $ref: '#/definitions/CreatedResponse'
+        '400':
+          description: 'Validation error'
+          schema:
+            $ref: '#/definitions/ValidationError'
+        '500':
+          description: 'Internal Server error'
+          schema:
+            $ref: '#/definitions/InternalServerError'            
+  /api/v1/verify_password:          
+    post:
+      summary: 'Verify Account and Password'
+      tags:
+        - 'Accounts'
+      parameters:
+        - name: 'account'
+          in: 'body'
+          description: 'account & password to verify'
+          required: true
+          schema:
+            $ref: '#/definitions/Account'
+      responses:
+        '200':
+          description: 'Verified username & password'
+          schema:
+            $ref: '#/definitions/VeifiedResponse'
+        '401':
+          description: 'Authorization error'
+          schema:
+            $ref: '#/definitions/AuthorizationError'
+        '404': 
+          description: 'Not found error'
+          schema:
+            $ref: '#/definitions/NotFoundError'       
+        '429':
+          description: 'Too many request error'
+          schema:
+            $ref: '#/definitions/TooManyRequestsError'
+        '500':
+          description: 'Internal Server error'
+          schema:
+            $ref: '#/definitions/InternalServerError'
+definitions:
+  Account:
+    type: 'object'
+    required:
+      - 'username'
+      - 'password'
+    properties:
+      username:
+        type: 'string'
+        description: 'a minimum length of 3 characters and a maximum length of 32 characters.'
+      password:
+        type: 'string'
+        description: 'a minimum length of 3 characters and a maximum length of 32 characters, containing at least 1 uppercase letter, 1 lowercase letter, and 1 number.'
+  CreatedResponse:
+    type: 'object'
+    required:
+      - 'success'
+    properties:
+      success:
+        type: 'boolean'
+        description: 'create success'
+  VeifiedResponse:
+    type: 'object'
+    required:
+      - 'success'
+    properties:
+      success:
+        type: 'boolean'
+        description: 'verify success'
+  ValidationError:
+    type: 'object'
+    required:
+      - 'success'
+      - 'reason'
+    properties:
+      success:
+        type: 'boolean'
+        example: false
+        description: 'create fail'
+      reason:
+        type: 'string'
+        description: 'the reason for a failed account creation'
+        example: 'Username already exists.'
+  NotFoundError:
+    type: 'object'
+    required:
+      - 'message'
+    properties:
+      message:
+        type: 'string'
+        example: 'user not found error'
+  AuthorizationError:
+    type: 'object'
+    required:
+      - 'message'
+    properties:
+      message:
+        type: 'string'
+        example: 'Password verification failed'
+  InternalServerError:
+    type: 'object'
+    required:
+      - 'message'
+    properties:
+      message:
+        type: 'string'
+  TooManyRequestsError:
+    type: 'object'
+    required:
+      - 'message'
+    properties:
+      message:
+        type: 'string'
+        example: 'wait one minute before attempting to verify the password again.'
