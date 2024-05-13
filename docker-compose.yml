@@ -1,25 +1,34 @@
 version: '3.8'
 
 services:
-  web:
+  db:
+    image: mysql:latest
+    container_name: some-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: some_mysql
+    ports:
+      - "3307:3306"  # Change the host port to 3307
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "--silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  flask-app:
     build: .
     ports:
       - "5000:5000"
-    depends_on:
-      - db
     environment:
       - FLASK_ENV=development
-      - SQLALCHEMY_DATABASE_URI=mysql+pymysql://root:root@db:3306/mysql
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - mynetwork
 
-  db:
-    image: mysql:5.7
-    environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: mysql
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql-data:/var/lib/mysql
-
-volumes:
-  mysql-data:
+networks:
+  mynetwork:
+    driver: bridge
