@@ -5,18 +5,18 @@ import time
 app = Flask(__name__)
 
 ### db
-# 配置MySQL數據庫連接
+# 連線至mySQL
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:root@db:3306/some_mysql'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
-# 定義Account模型
+# Create Account Table
 class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), unique=True, nullable=False)
     password = db.Column(db.String(32), nullable=False)
 
-# 定義LoginInfo模型
+# Create LoginInfo Table
 class LoginInfo(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(32), db.ForeignKey('account.username'), nullable=False)
